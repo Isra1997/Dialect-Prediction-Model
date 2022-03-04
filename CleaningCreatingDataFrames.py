@@ -1,41 +1,48 @@
 import pandas as pd
 import requests
 import re
+import emoji
 
 
 def main():
     df = pd.read_csv(r'dialect_dataset.csv')
     url = "https://recruitment.aimtechnologies.co/ai-tasks"
     tweets = []
-    test_df = df.iloc[0:10]
-    stop = df.shape[0]-197
+    stop = df.shape[0]-196
 
-    for row in range(1000, stop+1, 1000):
+    for row in range(1000, stop, 1000):
         data = list(df.iloc[row-1000:row]['id'].map(str))
         print("id", data)
         tweet = requests.post(url, json=data)
-        emojiHandlesRemoved = removeEmojiAndHandles(tweet.json())
+        emojiHandlesRemoved = removeEmojisAndHandles(tweet.json())
         tweets.extend(emojiHandlesRemoved)
         print(emojiHandlesRemoved)
 
-    test_df.insert(2, "tweet", tweets, True)
-    test_df.to_csv(r'tweet_dialect_dataset.csv')
+    # finish last 197 rows
+    data = list(df.iloc[458001:458198]['id'].map(str))
+    print("id", data)
+    tweet = requests.post(url, json=data)
+    emojiHandlesRemoved = removeEmojisAndHandles(tweet.json())
+    tweets.extend(emojiHandlesRemoved)
 
-    print(test_df)
+    # save result to CSV
+    df.insert(1, "tweet", tweets, True)
+    df.to_csv(r'tweet_dialect_dataset.csv')
+
+    df
 
 
-def removeEmojiAndHandles(tweets):
+def removeEmojisAndHandles(tweets):
     removeEmojiTweets = []
     pairs = tweets.items()
     for key, value in pairs:
-        regrex_pattern = re.compile(pattern="["
-                                            u"\U0001F600-\U0001F64F"  # emoticons
-                                            u"\U0001F300-\U0001F5FF"  # symbols & pictographs
-                                            u"\U0001F680-\U0001F6FF"  # transport & map symbols
-                                            u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
-                                            "]+", flags=re.UNICODE)
-        emojiRemoved = regrex_pattern.sub(r'', value)
-        removeEmojiTweets.append(re.sub('@[^\s]+', '', emojiRemoved))
+        emojiRemoved = emoji.get_emoji_regexp().sub(u'', value)
+        handleRemoved = re.sub('@[^\s]+', '', emojiRemoved)
+        hashTagRemoved = re.sub("#[A-Za-z0-9_]+", "", handleRemoved)
+        linksRemoved = re.sub(r'http\S+', '', hashTagRemoved)
+        puncRemoved = re.sub('[()!?]', ' ', linksRemoved)
+        puncRemoved = re.sub('\[.*?\]', ' ', puncRemoved)
+        removeEmojiTweets.append(puncRemoved)
     return removeEmojiTweets
 
 
