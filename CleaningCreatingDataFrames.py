@@ -2,6 +2,8 @@ import pandas as pd
 import requests
 import re
 import emoji
+from pyarabic.araby import tokenize, is_arabicrange, strip_tashkeel, strip_tatweel, strip_diacritics, is_arabicword
+import string
 
 
 def main():
@@ -19,7 +21,7 @@ def main():
         print(emojiHandlesRemoved)
 
     # finish last 197 rows
-    data = list(df.iloc[458001:458198]['id'].map(str))
+    data = list(df.iloc[458000:458198]['id'].map(str))
     print("id", data)
     tweet = requests.post(url, json=data)
     emojiHandlesRemoved = removeEmojisAndHandles(tweet.json())
@@ -29,21 +31,39 @@ def main():
     df.insert(1, "tweet", tweets, True)
     df.to_csv(r'tweet_dialect_dataset.csv')
 
-    df
+
+def test():
+    result = removeEmojisAndHandles({"3920270598136":"?.فلم DHOOM:3 ههههههه  ؟لما خلص الفلم ما عرفت شو قول فلم بايخ وفاشل ولا فلم رائع لكن اللي متأكد منوا ان الممثل #عامر_خان.. ادا الدور بشكل اكثر هههه  ، من رائع",
+                            "392027059813646400":"#ياااحرية   بسام سليمان بكار مواليد 1978 _ حمص تير معلة اعتقلوه العفاريت الزرق بتاريخ  ؟ 18/5/2013 من حاجز"})
+
+
+def remove_punctuations(text):
+    arabic_punctuations = '''`÷×؛<>_()*&^%][ـ،/:"؟.,'{}~¦+|!”…“–ـ'''
+    english_punctuations = string.punctuation
+    punctuations_list = arabic_punctuations + english_punctuations
+    translator = str.maketrans('', '', punctuations_list)
+    return text.translate(translator)
 
 
 def removeEmojisAndHandles(tweets):
-    removeEmojiTweets = []
+    cleanTweets = []
     pairs = tweets.items()
     for key, value in pairs:
         emojiRemoved = emoji.get_emoji_regexp().sub(u'', value)
         handleRemoved = re.sub('@[^\s]+', '', emojiRemoved)
         hashTagRemoved = re.sub("#[A-Za-z0-9_]+", "", handleRemoved)
         linksRemoved = re.sub(r'http\S+', '', hashTagRemoved)
-        puncRemoved = re.sub('[()!?]', ' ', linksRemoved)
-        puncRemoved = re.sub('\[.*?\]', ' ', puncRemoved)
-        removeEmojiTweets.append(puncRemoved)
-    return removeEmojiTweets
+        removeLaughs = re.sub("\sه*\s", '', linksRemoved)
+        newLineRemoved = removeLaughs.replace('|', ' ')
+        newLineRemoved = newLineRemoved.replace('\n', ' ')
+        puncRemoved = remove_punctuations(newLineRemoved)
+        trimTweet = puncRemoved.strip()
+        nonArabicTextRemoved = ' '.join(tokenize(trimTweet, conditions=[is_arabicrange, is_arabicword], morphs=[strip_tashkeel, strip_tatweel]))
+        removeTatweel = strip_tatweel(nonArabicTextRemoved)
+        removedDiacritics = strip_diacritics(removeTatweel)
+        print("after", removedDiacritics)
+        cleanTweets.append(removedDiacritics)
+    return cleanTweets
 
 
 if __name__ == '__main__':
