@@ -33,7 +33,7 @@ def main():
 
 
 def test():
-    result = removeEmojisAndHandles({"3920270598136":"?.فلم DHOOM:3 ههههههه  ؟لما خلص الفلم ما عرفت شو قول فلم بايخ وفاشل ولا فلم رائع لكن اللي متأكد منوا ان الممثل #عامر_خان.. ادا الدور بشكل اكثر هههه  ، من رائع",
+    result = removeEmojisAndHandles({"3920270598136":"هههههههه?. DHOOM:3 ههههههه  ؟لما خلص الفلم ما عرفت شو قول فلم بايخ وفاشل ولا فلم رائع لكن اللي متأكد منوا ان الممثل #عامر_خان.. ادا الدور بشكل اكثر هههه  ، من رائع",
                             "392027059813646400":"#ياااحرية   بسام سليمان بكار مواليد 1978 _ حمص تير معلة اعتقلوه العفاريت الزرق بتاريخ  ؟ 18/5/2013 من حاجز"})
 
 
@@ -53,7 +53,7 @@ def removeEmojisAndHandles(tweets):
         handleRemoved = re.sub('@[^\s]+', '', emojiRemoved)
         hashTagRemoved = re.sub("#[A-Za-z0-9_]+", "", handleRemoved)
         linksRemoved = re.sub(r'http\S+', '', hashTagRemoved)
-        removeLaughs = re.sub("\sه*\s", '', linksRemoved)
+        removeLaughs = re.sub("[ه*]", '', linksRemoved)
         newLineRemoved = removeLaughs.replace('|', ' ')
         newLineRemoved = newLineRemoved.replace('\n', ' ')
         puncRemoved = remove_punctuations(newLineRemoved)
